@@ -9,6 +9,11 @@ import (
 // generate `max` random numbers
 // if `unique` is ture, all numbers are unique
 func generateRandomNumbers(n, max int, unique bool) []int {
+	if unique && n > max {
+		fmt.Printf("In Unique mode, number of random numbers (%d) should not bigger than max range (%d).", n, max)
+		var result []int
+		return result
+	}
 	set := make(map[int]bool)
 	var result []int
 	for len(set) < n {
@@ -35,7 +40,7 @@ func generateRandomNumbers(n, max int, unique bool) []int {
 func main() {
 	num := flag.Int("n", 10, "Number of Random Numbers")
 	maxium := flag.Int("m", 100, "Generated number should not bigger than ?")
-	unique := flag.Bool("u", false, "Should all generated number be unique?")
+	unique := flag.Bool("u", true, "Should all generated number be unique?")
 	flag.Parse()
 
 	uniqueRandomNumbers := generateRandomNumbers(*num, *maxium, *unique)
