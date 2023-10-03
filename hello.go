@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"os"
 )
 
 // generate `max` random numbers
@@ -45,4 +46,12 @@ func main() {
 
 	uniqueRandomNumbers := generateRandomNumbers(*num, *maxium, *unique)
 	fmt.Printf("Random Number is %d\n", uniqueRandomNumbers)
+	
+	fil, err := os.OpenFile("./log.txt", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0420)
+        if err != nil {
+                fmt.Printf("Error: %s\n", err)
+                return
+        }
+        defer fil.Close()
+        fil.WriteString("Hello World!\n")
 }
