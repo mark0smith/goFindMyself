@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"time"
 )
 
 // generate `max` random numbers
@@ -39,19 +40,28 @@ func generateRandomNumbers(n, max int, unique bool) []int {
 }
 
 func main() {
-	num := flag.Int("n", 10, "Number of Random Numbers")
+	num := flag.Int("n", 30, "Number of Random Numbers")
 	maxium := flag.Int("m", 100, "Generated number should not bigger than ?")
 	unique := flag.Bool("u", true, "Should all generated number be unique?")
+	remember := flag.Bool("r", false, "Should I remember all generated numbers?")
 	flag.Parse()
 
+	datetime := time.Now()
+	datetimeFormatted := datetime.Format("2006-01-02 15:04:05")
+
 	uniqueRandomNumbers := generateRandomNumbers(*num, *maxium, *unique)
-	fmt.Printf("Random Number is %d\n", uniqueRandomNumbers)
-	
-	fil, err := os.OpenFile("./log.txt", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0420)
-        if err != nil {
-                fmt.Printf("Error: %s\n", err)
-                return
-        }
-        defer fil.Close()
-        fil.WriteString("Hello World!\n")
+	fmt.Printf("%s Random Number is %d\n", datetimeFormatted, uniqueRandomNumbers)
+
+	// type of remember is a pointer, add `*` prefix to get its value
+	if *remember {
+
+		fil, err := os.OpenFile("./log.txt", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0640)
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+			return
+		}
+		defer fil.Close()
+		info := fmt.Sprintf("%s %d\n", datetimeFormatted, uniqueRandomNumbers)
+		fil.WriteString(info)
+	}
 }
