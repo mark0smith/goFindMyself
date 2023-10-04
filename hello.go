@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -51,7 +52,13 @@ func checkRecall() {
 	if err != nil {
 		panic(err)
 	}
+
+	// replace all whitespace characters with a single space
+	reg := regexp.MustCompile(`\s+`)
+	recallString = reg.ReplaceAllString(recallString, " ")
+
 	recallString = strings.TrimSuffix(recallString, "\n")
+	recallString = strings.TrimSuffix(recallString, " ")
 	fmt.Printf("\nYou have entered: %s\n", recallString)
 
 	toCheck := fmt.Sprintf("[%s]", recallString)
@@ -63,8 +70,18 @@ func checkRecall() {
 		fmt.Println("You have a correct memory!")
 	} else {
 		fmt.Println("Are you sure you remember it right?")
+		// fmt.Printf("%s not in %s", toCheck, string(content))
 	}
 
+}
+
+func writeInfo(filename, info string) {
+	fil, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0640)
+	if err != nil {
+		panic(err)
+	}
+	defer fil.Close()
+	fil.WriteString(info)
 }
 
 func main() {
@@ -88,13 +105,8 @@ func main() {
 
 	// type of remember is a pointer, add `*` prefix to get its value
 	if *remember {
-
-		fil, err := os.OpenFile("./log.txt", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0640)
-		if err != nil {
-			panic(err)
-		}
-		defer fil.Close()
 		info := fmt.Sprintf("%s %d\n", datetimeFormatted, uniqueRandomNumbers)
-		fil.WriteString(info)
+		filename := "./log.txt"
+		writeInfo(filename, info)
 	}
 }
