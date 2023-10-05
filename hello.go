@@ -43,7 +43,7 @@ func generateRandomNumbers(n, max int, unique bool) []int {
 }
 
 // recall func
-func checkRecall(recallLog bool, showhint int) {
+func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, showhint int) {
 
 	fmt.Println("What do you remember?")
 
@@ -62,7 +62,7 @@ func checkRecall(recallLog bool, showhint int) {
 	fmt.Printf("\nYou have entered: %s\n", recallString)
 
 	toCheck := fmt.Sprintf("[%s]", recallString)
-	content, err := os.ReadFile("./log.txt")
+	content, err := os.ReadFile(rememberLogfile)
 	if err != nil {
 		panic(err)
 	}
@@ -110,7 +110,7 @@ func checkRecall(recallLog bool, showhint int) {
 		datetime := time.Now()
 		datetimeFormatted := datetime.Format("2006-01-02 15:04:05")
 		info := fmt.Sprintf("%s Recall: %s, Result: %v\n", datetimeFormatted, recallString, recallResult)
-		writeInfo("./recall_log.txt", info)
+		writeInfo(recallLogfile, info)
 	}
 }
 
@@ -143,14 +143,16 @@ func main() {
 	num := flag.Int("n", 30, "Number of Random Numbers.")
 	maxium := flag.Int("m", 100, "Generated number wont't be bigger than this number.")
 	unique := flag.Bool("u", true, "If set, all generated numbers will be unique.")
-	remember := flag.Bool("r", false, "If set, generated numbers will be logged into `log.txt`.\nYou should set this if you want to do recall test later!")
+	remember := flag.Bool("r", false, "If set, generated numbers will be logged into `rememberLogfile`.\nYou should set this if you want to do recall test later!")
+	rememberLogfile := flag.String("r_file", "log.txt", "Filename of remember log")
 	recall := flag.Bool("recall", false, "If set, run a recall test, instead of generating random numbers.")
-	recallLog := flag.Bool("recallLog", true, "If set, recall info will be logged into `recall_log.txt`.")
+	recallLog := flag.Bool("recallLog", true, "If set, recall info will be logged into `recallLogfile`.")
+	recallLogfile := flag.String("recall_file", "recall_log.txt", "Filename of recall log")
 	recallShowHint := flag.Int("hint", 0, "If set, when recall test failes, hint will be given.\n0 for no hint, 1 for diff hint, 2 for full hint")
 	flag.Parse()
 
 	if *recall {
-		checkRecall(*recallLog, *recallShowHint)
+		checkRecall(*rememberLogfile, *recallLogfile, *recallLog, *recallShowHint)
 		return
 	}
 
@@ -163,7 +165,7 @@ func main() {
 	// type of remember is a pointer, add `*` prefix to get its value
 	if *remember {
 		info := fmt.Sprintf("%s %d\n", datetimeFormatted, uniqueRandomNumbers)
-		filename := "./log.txt"
+		filename := *rememberLogfile
 		writeInfo(filename, info)
 	}
 }
