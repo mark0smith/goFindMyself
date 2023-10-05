@@ -7,8 +7,11 @@ import (
 	"math/rand"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 // generate `max` random numbers
@@ -93,13 +96,48 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 					if len(missingNumbers) > 5 {
 						info += fmt.Sprintf("You are missing %d numbers, which is too many for hinting. You should remember it again!\n", len(missingNumbers))
 					} else {
-						info += fmt.Sprintf("You are missing these numbers: %s\n", strings.Join(missingNumbers, " "))
+						red := color.New(color.FgRed, color.Bold).SprintFunc()
+						info += fmt.Sprintf("You are missing these numbers: %s\n", red(strings.Join(missingNumbers, " ")))
 						wrongNumbers := difference(recallSlice, correctSlice)
-						info += fmt.Sprintf("You add these numbers which should't exist: %s\n", strings.Join(wrongNumbers, " "))
+						if len(wrongNumbers) > 0 {
+							yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
+							info += fmt.Sprintf("You add these numbers which should't exist: %s\n", yellow(strings.Join(wrongNumbers, " ")))
+						}
 					}
 
 				} else if showhint == 2 {
-					info += fmt.Sprintf("The Right: %s\nThe Wrong: %s", correctStr, recallString)
+					//info += fmt.Sprintf("The Right: %s\nThe Wrong: %s", correctStr, recallString)
+
+					// colorize missing and wrong numbers
+					correctSlice := strings.Split(correctStr, " ")
+					missingNumbers := difference(correctSlice, recallSlice)
+					red := color.New(color.FgRed, color.Bold).SprintFunc()
+
+					var correctStrColored []string
+					for _, val := range correctSlice {
+						if slices.Contains(missingNumbers, val) {
+							correctStrColored = append(correctStrColored, red(val))
+						} else {
+							correctStrColored = append(correctStrColored, val)
+						}
+					}
+					correctStr = strings.Join(correctStrColored, " ")
+
+					wrongSlice := strings.Split(recallString, " ")
+					yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
+					wrongNumbers := difference(recallSlice, correctSlice)
+					var wrongStrColored []string
+					for _, val := range wrongSlice {
+						if slices.Contains(wrongNumbers, val) {
+							wrongStrColored = append(wrongStrColored, yellow(val))
+						} else {
+							wrongStrColored = append(wrongStrColored, val)
+						}
+					}
+					wrongStr := strings.Join(wrongStrColored, " ")
+
+					info += fmt.Sprintf("The Right: %s\nThe Wrong: %s", correctStr, wrongStr)
+
 				}
 			}
 			fmt.Printf("%s", info)
