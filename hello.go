@@ -128,7 +128,7 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 					var wrongStrColored []string
 
 					if len(missingNumbers) == 0 && len(wrongNumbers) == 0 {
-						for idx, _ := range correctSlice {
+						for idx := range correctSlice {
 							rVal := correctSlice[idx]
 							wVal := wrongSlice[idx]
 							if rVal == wVal {
@@ -219,7 +219,28 @@ func main() {
 	datetimeFormatted := datetime.Format("2006-01-02 15:04:05")
 
 	uniqueRandomNumbers := generateRandomNumbers(*num, *maxium, *unique)
-	fmt.Printf("%s Random Number is %d\n", datetimeFormatted, uniqueRandomNumbers)
+
+	// format output string, making it easier to remember
+	var outputStr string
+	boldBlue := color.New(color.Bold, color.FgHiBlue).SprintFunc()
+	for idx, val := range uniqueRandomNumbers {
+		info := ""
+		if (idx+1)%5 == 0 {
+			info = fmt.Sprintf(" %-2s", boldBlue(fmt.Sprintf("%-2d", val)))
+			if (idx+1)%10 == 0 {
+				info += "\n"
+			}
+		} else {
+			if (idx+1)%10 == 1 {
+				info = fmt.Sprintf("%-2d", val)
+			} else {
+				info = fmt.Sprintf(" %-2d", val)
+			}
+		}
+		outputStr += info
+	}
+
+	fmt.Printf("%s Random Number Generated:\n%s\n", datetimeFormatted, outputStr)
 
 	// type of remember is a pointer, add `*` prefix to get its value
 	if *remember {
