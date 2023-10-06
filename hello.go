@@ -96,12 +96,18 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 					if len(missingNumbers) > 5 {
 						info += fmt.Sprintf("You are missing %d numbers, which is too many for hinting. You should remember it again!\n", len(missingNumbers))
 					} else {
-						red := color.New(color.FgRed, color.Bold).SprintFunc()
-						info += fmt.Sprintf("You are missing these numbers: %s\n", red(strings.Join(missingNumbers, " ")))
+						if len(missingNumbers) > 0 {
+							red := color.New(color.FgRed, color.Bold).SprintFunc()
+							info += fmt.Sprintf("You are missing these numbers: %s\n", red(strings.Join(missingNumbers, " ")))
+						}
 						wrongNumbers := difference(recallSlice, correctSlice)
 						if len(wrongNumbers) > 0 {
 							yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
 							info += fmt.Sprintf("You add these numbers which should't exist: %s\n", yellow(strings.Join(wrongNumbers, " ")))
+						}
+						if len(missingNumbers) == 0 && len(wrongNumbers) == 0 {
+							cyan := color.New(color.FgCyan, color.Bold).SprintFunc()
+							info += fmt.Sprintf("You have remember all the numbers, but the %s are wrong!", cyan("orders"))
 						}
 					}
 
@@ -111,33 +117,48 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 					// colorize missing and wrong numbers
 					correctSlice := strings.Split(correctStr, " ")
 					missingNumbers := difference(correctSlice, recallSlice)
+					wrongSlice := strings.Split(recallString, " ")
+					wrongNumbers := difference(recallSlice, correctSlice)
+
 					red := color.New(color.FgRed, color.Bold).SprintFunc()
+					yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
+					green := color.New(color.FgGreen, color.Bold).SprintFunc()
 
 					var correctStrColored []string
-					for _, val := range correctSlice {
-						if slices.Contains(missingNumbers, val) {
-							correctStrColored = append(correctStrColored, red(val))
-						} else {
-							correctStrColored = append(correctStrColored, val)
+					var wrongStrColored []string
+
+					if len(missingNumbers) == 0 && len(wrongNumbers) == 0 {
+						for idx, _ := range correctSlice {
+							rVal := correctSlice[idx]
+							wVal := wrongSlice[idx]
+							if rVal == wVal {
+								correctStrColored = append(correctStrColored, rVal)
+								wrongStrColored = append(wrongStrColored, wVal)
+							} else {
+								correctStrColored = append(correctStrColored, green(rVal))
+								wrongStrColored = append(wrongStrColored, red(wVal))
+							}
+						}
+					} else {
+						for _, val := range correctSlice {
+							if slices.Contains(missingNumbers, val) {
+								correctStrColored = append(correctStrColored, red(val))
+							} else {
+								correctStrColored = append(correctStrColored, val)
+							}
+						}
+
+						for _, val := range wrongSlice {
+							if slices.Contains(wrongNumbers, val) {
+								wrongStrColored = append(wrongStrColored, yellow(val))
+							} else {
+								wrongStrColored = append(wrongStrColored, val)
+							}
 						}
 					}
 					correctStr = strings.Join(correctStrColored, " ")
-
-					wrongSlice := strings.Split(recallString, " ")
-					yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
-					wrongNumbers := difference(recallSlice, correctSlice)
-					var wrongStrColored []string
-					for _, val := range wrongSlice {
-						if slices.Contains(wrongNumbers, val) {
-							wrongStrColored = append(wrongStrColored, yellow(val))
-						} else {
-							wrongStrColored = append(wrongStrColored, val)
-						}
-					}
 					wrongStr := strings.Join(wrongStrColored, " ")
-
 					info += fmt.Sprintf("The Right: %s\nThe Wrong: %s", correctStr, wrongStr)
-
 				}
 			}
 			fmt.Printf("%s", info)
