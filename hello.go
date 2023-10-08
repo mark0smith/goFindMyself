@@ -211,6 +211,7 @@ func main() {
 	flag.Parse()
 
 	if *recall {
+		defer timer("checkRecall")()
 		checkRecall(*rememberLogfile, *recallLogfile, *recallLog, *recallShowHint)
 		return
 	}
