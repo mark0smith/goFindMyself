@@ -23,3 +23,4 @@ go.work
 .vscode
 *.txt
 hello
+*.db

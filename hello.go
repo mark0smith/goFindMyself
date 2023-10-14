@@ -208,7 +208,15 @@ func main() {
 	recallLog := flag.Bool("recallLog", true, "If set, recall info will be logged into `recallLogfile`.")
 	recallLogfile := flag.String("recall_file", "recall_log.txt", "Filename of recall log")
 	recallShowHint := flag.Int("hint", 0, "If set, when recall test failes, hint will be given.\n0 for no hint, 1 for diff hint, 2 for full hint")
+	dbFilename := flag.String("db", "data.db", "Filename of database")
+	migratedb := flag.Bool("migratedb", true, "If set, recall info will be logged into `recallLogfile`.")
+
 	flag.Parse()
+
+	if *migratedb {
+		fmt.Println(*dbFilename)
+		initDB(*rememberLogfile, *recallLogfile, *dbFilename)
+	}
 
 	if *recall {
 		defer timer("checkRecall")()
