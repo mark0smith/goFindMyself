@@ -4,49 +4,19 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"math/rand"
 	"os"
 	"regexp"
 	"slices"
 	"strings"
 	"time"
 
+	"utils"
+
 	"github.com/fatih/color"
 )
 
-// generate `max` random numbers
-// if `unique` is ture, all numbers are unique
-func generateRandomNumbers(n, max int, unique bool) []int {
-	if unique && n > max {
-		fmt.Printf("In Unique mode, number of random numbers (%d) should not bigger than max range (%d).", n, max)
-		var result []int
-		return result
-	}
-	set := make(map[int]bool)
-	var result []int
-	for len(set) < n {
-		value := rand.Intn(max)
-		// fmt.Printf("[+] Run in %v Mode, Current Result is %d\n", unique, result)
-		if unique {
-			if !set[value] {
-				set[value] = true
-				result = append(result, value)
-			}
-		} else {
-			set[value] = true
-			result = append(result, value)
-
-		}
-		if len(result) >= n {
-			break
-		}
-
-	}
-	return result
-}
-
 // recall func
-func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, showhint int) {
+func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, showhint int, dbfile string) {
 
 	fmt.Println("What do you remember?")
 
@@ -71,6 +41,10 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 	}
 
 	recallResult := strings.Contains(string(content), toCheck)
+
+	datetime := time.Now()
+	datetimeFormatted := datetime.Format("2006-01-02 15:04:05")
+	utils.AddRecalls(dbfile, []string{datetimeFormatted}, []string{recallString}, []string{fmt.Sprintf("%t", recallResult)})
 	if recallResult {
 		fmt.Println("You have a correct memory!")
 	} else {
@@ -92,7 +66,7 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 			} else {
 				if showhint == 1 {
 					correctSlice := strings.Split(correctStr, " ")
-					missingNumbers := difference(correctSlice, recallSlice)
+					missingNumbers := utils.Difference(correctSlice, recallSlice)
 					if len(missingNumbers) > 5 {
 						info += fmt.Sprintf("You are missing %d numbers, which is too many for hinting. You should remember it again!\n", len(missingNumbers))
 					} else {
@@ -100,7 +74,7 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 							red := color.New(color.FgRed, color.Bold).SprintFunc()
 							info += fmt.Sprintf("You are missing these numbers: %s\n", red(strings.Join(missingNumbers, " ")))
 						}
-						wrongNumbers := difference(recallSlice, correctSlice)
+						wrongNumbers := utils.Difference(recallSlice, correctSlice)
 						if len(wrongNumbers) > 0 {
 							yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
 							info += fmt.Sprintf("You add these numbers which should't exist: %s\n", yellow(strings.Join(wrongNumbers, " ")))
@@ -116,9 +90,9 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 
 					// colorize missing and wrong numbers
 					correctSlice := strings.Split(correctStr, " ")
-					missingNumbers := difference(correctSlice, recallSlice)
+					missingNumbers := utils.Difference(correctSlice, recallSlice)
 					wrongSlice := strings.Split(recallString, " ")
-					wrongNumbers := difference(recallSlice, correctSlice)
+					wrongNumbers := utils.Difference(recallSlice, correctSlice)
 
 					red := color.New(color.FgRed, color.Bold).SprintFunc()
 					yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
@@ -169,33 +143,8 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 		datetime := time.Now()
 		datetimeFormatted := datetime.Format("2006-01-02 15:04:05")
 		info := fmt.Sprintf("%s Recall: %s, Result: %v\n", datetimeFormatted, recallString, recallResult)
-		writeInfo(recallLogfile, info)
+		utils.WriteInfo(recallLogfile, info)
 	}
-}
-
-// difference returns the elements in `a` that aren't in `b`.
-// https://stackoverflow.com/a/45428032
-func difference(a, b []string) []string {
-	mb := make(map[string]struct{}, len(b))
-	for _, x := range b {
-		mb[x] = struct{}{}
-	}
-	var diff []string
-	for _, x := range a {
-		if _, found := mb[x]; !found {
-			diff = append(diff, x)
-		}
-	}
-	return diff
-}
-
-func writeInfo(filename, info string) {
-	fil, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0640)
-	if err != nil {
-		panic(err)
-	}
-	defer fil.Close()
-	fil.WriteString(info)
 }
 
 func main() {
@@ -214,20 +163,19 @@ func main() {
 	flag.Parse()
 
 	if *migratedb {
-		fmt.Println(*dbFilename)
-		initDB(*rememberLogfile, *recallLogfile, *dbFilename)
+		utils.InitDB(*rememberLogfile, *recallLogfile, *dbFilename)
 	}
 
 	if *recall {
-		defer timer("checkRecall")()
-		checkRecall(*rememberLogfile, *recallLogfile, *recallLog, *recallShowHint)
+		defer utils.Timer("checkRecall")()
+		checkRecall(*rememberLogfile, *recallLogfile, *recallLog, *recallShowHint, *dbFilename)
 		return
 	}
 
 	datetime := time.Now()
 	datetimeFormatted := datetime.Format("2006-01-02 15:04:05")
 
-	uniqueRandomNumbers := generateRandomNumbers(*num, *maxium, *unique)
+	uniqueRandomNumbers := utils.GenerateRandomNumbers(*num, *maxium, *unique)
 
 	// format output string, making it easier to remember
 	var outputStr string
@@ -255,6 +203,10 @@ func main() {
 	if *remember {
 		info := fmt.Sprintf("%s %d\n", datetimeFormatted, uniqueRandomNumbers)
 		filename := *rememberLogfile
-		writeInfo(filename, info)
+		utils.WriteInfo(filename, info)
+		numbersStr := fmt.Sprintf("%v", uniqueRandomNumbers)
+		numbersStr = strings.TrimPrefix(numbersStr, "[")
+		numbersStr = strings.TrimSuffix(numbersStr, "]")
+		utils.AddNumbers(*dbFilename, []string{datetimeFormatted}, []string{numbersStr})
 	}
 }
