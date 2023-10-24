@@ -31,7 +31,7 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 	recallString = reg.ReplaceAllString(recallString, " ")
 
 	recallString = strings.TrimSuffix(recallString, "\n")
-	recallString = strings.TrimSuffix(recallString, " ")
+	recallString = strings.TrimSpace(recallString)
 	fmt.Printf("\nYou have entered: %s\n", recallString)
 
 	toCheck := fmt.Sprintf("[%s]", recallString)
@@ -132,7 +132,7 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 					}
 					correctStr = strings.Join(correctStrColored, " ")
 					wrongStr := strings.Join(wrongStrColored, " ")
-					info += fmt.Sprintf("The Right: %s\nThe Wrong: %s", correctStr, wrongStr)
+					info += fmt.Sprintf("The Right: %s\nThe Wrong: %s\n", correctStr, wrongStr)
 				}
 			}
 			fmt.Printf("%s", info)
