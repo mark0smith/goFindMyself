@@ -87,3 +87,14 @@ func GenerateRandomNumbers(n, max int, unique bool) []int {
 	}
 	return result
 }
+
+// Insert a value into a slice at index
+// https://stackoverflow.com/a/61822301
+func Insert(a []string, index int, value string) []string {
+	if len(a) == index { // nil or empty slice or after last element
+		return append(a, value)
+	}
+	a = append(a[:index+1], a[index:]...) // index < len(a)
+	a[index] = value
+	return a
+}

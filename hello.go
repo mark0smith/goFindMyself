@@ -93,7 +93,7 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 					missingNumbers := utils.Difference(correctSlice, recallSlice)
 					wrongSlice := strings.Split(recallString, " ")
 					wrongNumbers := utils.Difference(recallSlice, correctSlice)
-
+					
 					red := color.New(color.FgRed, color.Bold).SprintFunc()
 					yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
 					green := color.New(color.FgGreen, color.Bold).SprintFunc()
@@ -114,9 +114,10 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 							}
 						}
 					} else {
-						for _, val := range correctSlice {
+						for idx, val := range correctSlice {
 							if slices.Contains(missingNumbers, val) {
 								correctStrColored = append(correctStrColored, red(val))
+								wrongSlice = utils.Insert(wrongSlice, idx, strings.Repeat(" ", len(val)))
 							} else {
 								correctStrColored = append(correctStrColored, val)
 							}
