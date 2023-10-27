@@ -1,10 +1,13 @@
 package utils
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"math/rand"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -97,4 +100,137 @@ func Insert(a []string, index int, value string) []string {
 	a = append(a[:index+1], a[index:]...) // index < len(a)
 	a[index] = value
 	return a
+}
+
+// find content in filename from user input
+func FindContent(rememberLogfile, recallString string) string {
+	reg := regexp.MustCompile(`\s+`)
+	recallString = reg.ReplaceAllString(recallString, " ")
+
+	recallString = strings.TrimSuffix(recallString, "\n")
+	recallString = strings.TrimSpace(recallString)
+
+	content, err := os.ReadFile(rememberLogfile)
+	if err != nil {
+		panic(err)
+	}
+
+	recallSlice := strings.Split(recallString, " ")
+	firstNumCount := min(len(recallSlice), 2)
+	correctRegStr := fmt.Sprintf(`\[%s [\w ]+\]`, strings.Join(recallSlice[:firstNumCount], " "))
+	reg = regexp.MustCompile(correctRegStr)
+	correctStr := reg.FindString(string(content))
+	correctStr = strings.TrimPrefix(correctStr, "[")
+	correctStr = strings.TrimSuffix(correctStr, "]")
+	return correctStr
+}
+
+// read user input and format it
+func ReadAndFormat() string {
+	reader := bufio.NewReader(os.Stdin)
+	recallString, err := reader.ReadString('\n')
+	if err != nil {
+		panic(err)
+	}
+
+	// replace all whitespace characters with a single space
+	reg := regexp.MustCompile(`\s+`)
+	recallString = reg.ReplaceAllString(recallString, " ")
+
+	recallString = strings.TrimSuffix(recallString, "\n")
+	recallString = strings.TrimSpace(recallString)
+	return recallString
+}
+
+// compare string
+func CompareHint(recallString, correctStr string, showhint int) bool {
+	recallResult := recallString == correctStr
+	if recallResult {
+		fmt.Println("You have a correct memory!")
+	} else {
+		fmt.Println("Are you sure you remember it right?")
+		if showhint > 0 {
+			// compare two strings and assume first few numbers (min of 2 and slice lenth) is correct
+			recallSlice := strings.Split(recallString, " ")
+			info := "\nHint Part:\n"
+			if len(correctStr) < 1 {
+				info += "Totally Wrong! Don't you even remember the first 2 number(s)?\n"
+			} else {
+				if showhint == 1 {
+					correctSlice := strings.Split(correctStr, " ")
+					missingNumbers := utils.Difference(correctSlice, recallSlice)
+					if len(missingNumbers) > 5 {
+						info += fmt.Sprintf("You are missing %d numbers, which is too many for hinting. You should remember it again!\n", len(missingNumbers))
+					} else {
+						if len(missingNumbers) > 0 {
+							red := color.New(color.FgRed, color.Bold).SprintFunc()
+							info += fmt.Sprintf("You are missing these numbers: %s\n", red(strings.Join(missingNumbers, " ")))
+						}
+						wrongNumbers := utils.Difference(recallSlice, correctSlice)
+						if len(wrongNumbers) > 0 {
+							yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
+							info += fmt.Sprintf("You add these numbers which should't exist: %s\n", yellow(strings.Join(wrongNumbers, " ")))
+						}
+						if len(missingNumbers) == 0 && len(wrongNumbers) == 0 {
+							cyan := color.New(color.FgCyan, color.Bold).SprintFunc()
+							info += fmt.Sprintf("You have remember all the numbers, but the %s are wrong!", cyan("orders"))
+						}
+					}
+
+				} else if showhint == 2 {
+					//info += fmt.Sprintf("The Right: %s\nThe Wrong: %s", correctStr, recallString)
+
+					// colorize missing and wrong numbers
+					correctSlice := strings.Split(correctStr, " ")
+					missingNumbers := utils.Difference(correctSlice, recallSlice)
+					wrongSlice := strings.Split(recallString, " ")
+					wrongNumbers := utils.Difference(recallSlice, correctSlice)
+
+					red := color.New(color.FgRed, color.Bold).SprintFunc()
+					yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
+					green := color.New(color.FgGreen, color.Bold).SprintFunc()
+
+					var correctStrColored []string
+					var wrongStrColored []string
+
+					if len(missingNumbers) == 0 && len(wrongNumbers) == 0 {
+						for idx := range correctSlice {
+							rVal := correctSlice[idx]
+							wVal := wrongSlice[idx]
+							if rVal == wVal {
+								correctStrColored = append(correctStrColored, rVal)
+								wrongStrColored = append(wrongStrColored, wVal)
+							} else {
+								correctStrColored = append(correctStrColored, green(rVal))
+								wrongStrColored = append(wrongStrColored, red(wVal))
+							}
+						}
+					} else {
+						for idx, val := range correctSlice {
+							if slices.Contains(missingNumbers, val) {
+								correctStrColored = append(correctStrColored, red(val))
+								wrongSlice = utils.Insert(wrongSlice, idx, strings.Repeat(" ", len(val)))
+							} else {
+								correctStrColored = append(correctStrColored, val)
+							}
+						}
+
+						for _, val := range wrongSlice {
+							if slices.Contains(wrongNumbers, val) {
+								wrongStrColored = append(wrongStrColored, yellow(val))
+							} else {
+								wrongStrColored = append(wrongStrColored, val)
+							}
+						}
+					}
+					correctStr = strings.Join(correctStrColored, " ")
+					wrongStr := strings.Join(wrongStrColored, " ")
+					info += fmt.Sprintf("The Right: %s\nThe Wrong: %s\n", correctStr, wrongStr)
+				}
+			}
+			fmt.Printf("%s", info)
+		}
+	}
+
+	return recallResult
 }

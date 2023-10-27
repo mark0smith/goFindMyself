@@ -29,6 +29,12 @@ func createDB(dbfile string) {
 		"recall"	TEXT NOT NULL,
 		"result"	INTEGER NOT NULL
 	);
+	CREATE TABLE "Number" (
+		"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
+		"number"	INTEGER NOT NULL,
+		"missingCount"	INTEGER,
+		"wrongCount"	INTEGER
+	);
 	`
 	_, err = db.Exec(sqlStmt)
 	if err != nil {
@@ -169,6 +175,47 @@ func AddRecalls(dbFile string, datetime []string, numbers []string, result []str
 			log.Fatal(err)
 		}
 	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+// add wrong numbers to db
+// type 1 for wrong numbers, type 2 for missing numbers
+func AddWrongNumbers(dbFile string, wrongType int, numbers []string) {
+	db, err := sql.Open("sqlite3", dbFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	stmt, err := tx.Prepare("insert into RandomNumbers(datetime, numbers) values(?, ?)")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer stmt.Close()
+
+	if err != nil {
+		panic(err)
+	}
+
+	// if len(datetime) != len(numbers) {
+	// 	panic("length of datetime and numbers mismatch while insert into db")
+	// }
+	// for i, v := range datetime {
+	// 	_, err = stmt.Exec(v, numbers[i])
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }
 
 	err = tx.Commit()
 	if err != nil {
