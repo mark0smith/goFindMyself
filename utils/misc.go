@@ -145,7 +145,7 @@ func ReadAndFormat() string {
 }
 
 // compare string
-func CompareHint(recallString, correctStr string, showhint int) bool {
+func CompareHint(dbFile, recallString, correctStr string, showhint int) bool {
 	recallResult := recallString == correctStr
 	if recallResult {
 		fmt.Println("You have a correct memory!")
@@ -161,6 +161,7 @@ func CompareHint(recallString, correctStr string, showhint int) bool {
 				if showhint == 1 {
 					correctSlice := strings.Split(correctStr, " ")
 					missingNumbers := Difference(correctSlice, recallSlice)
+					AddWrongNumbers(dbFile, 2, missingNumbers)
 					if len(missingNumbers) > 5 {
 						info += fmt.Sprintf("You are missing %d numbers, which is too many for hinting. You should remember it again!\n", len(missingNumbers))
 					} else {
@@ -187,6 +188,9 @@ func CompareHint(recallString, correctStr string, showhint int) bool {
 					missingNumbers := Difference(correctSlice, recallSlice)
 					wrongSlice := strings.Split(recallString, " ")
 					wrongNumbers := Difference(recallSlice, correctSlice)
+
+					AddWrongNumbers(dbFile, 2, missingNumbers)
+					AddWrongNumbers(dbFile, 1, wrongNumbers)
 
 					red := color.New(color.FgRed, color.Bold).SprintFunc()
 					yellow := color.New(color.FgYellow, color.Bold).SprintFunc()

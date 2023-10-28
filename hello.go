@@ -20,7 +20,7 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 
 	// toCheck := fmt.Sprintf("[%s]", recallString)
 	correctStr := utils.FindContent(rememberLogfile, recallString)
-	recallResult := utils.CompareHint(recallString, correctStr, showhint)
+	recallResult := utils.CompareHint(dbfile, recallString, correctStr, showhint)
 
 	datetime := time.Now()
 	datetimeFormatted := datetime.Format("2006-01-02 15:04:05")

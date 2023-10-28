@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"strconv"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -31,9 +32,9 @@ func createDB(dbfile string) {
 	);
 	CREATE TABLE "Number" (
 		"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
-		"number"	INTEGER NOT NULL,
-		"missingCount"	INTEGER,
-		"wrongCount"	INTEGER
+		"number"	INTEGER NOT NULL UNIQUE,
+		"missingCount"	INTEGER NOT NULL,
+		"wrongCount"	INTEGER NOT NULL
 	);
 	`
 	_, err = db.Exec(sqlStmt)
@@ -197,25 +198,51 @@ func AddWrongNumbers(dbFile string, wrongType int, numbers []string) {
 		log.Fatal(err)
 	}
 
-	stmt, err := tx.Prepare("insert into RandomNumbers(datetime, numbers) values(?, ?)")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer stmt.Close()
+	for _, number := range numbers {
+		stmt, err := tx.Prepare("select missingCount,wrongCount from Number where number = ?")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+		var missingCount, wrongCount string
+		err = stmt.QueryRow(number).Scan(&missingCount, &wrongCount)
 
-	if err != nil {
-		panic(err)
+		if err != nil {
+			stmt, err = tx.Prepare("insert into Number(number,missingCount,wrongCount) values(?,?, ?)")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer stmt.Close()
+			missingCount := 0
+			wrongCount := 0
+			if wrongType == 1 {
+				wrongCount += 1
+			} else {
+				missingCount += 1
+			}
+			_, err = stmt.Exec(number, missingCount, wrongCount)
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			stmt, err = tx.Prepare("update Number set missingCount = ? , wrongCount = ?  where number = ?")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer stmt.Close()
+			missingCount, _ := strconv.Atoi(missingCount)
+			wrongCount, _ := strconv.Atoi(wrongCount)
+			if wrongType == 1 {
+				wrongCount += 1
+			} else {
+				missingCount += 1
+			}
+			_, err = stmt.Exec(missingCount, wrongCount, number)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
-
-	// if len(datetime) != len(numbers) {
-	// 	panic("length of datetime and numbers mismatch while insert into db")
-	// }
-	// for i, v := range datetime {
-	// 	_, err = stmt.Exec(v, numbers[i])
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// }
 
 	err = tx.Commit()
 	if err != nil {
