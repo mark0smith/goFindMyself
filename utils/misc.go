@@ -7,9 +7,11 @@ import (
 	"math/rand"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -158,7 +160,7 @@ func CompareHint(recallString, correctStr string, showhint int) bool {
 			} else {
 				if showhint == 1 {
 					correctSlice := strings.Split(correctStr, " ")
-					missingNumbers := utils.Difference(correctSlice, recallSlice)
+					missingNumbers := Difference(correctSlice, recallSlice)
 					if len(missingNumbers) > 5 {
 						info += fmt.Sprintf("You are missing %d numbers, which is too many for hinting. You should remember it again!\n", len(missingNumbers))
 					} else {
@@ -166,7 +168,7 @@ func CompareHint(recallString, correctStr string, showhint int) bool {
 							red := color.New(color.FgRed, color.Bold).SprintFunc()
 							info += fmt.Sprintf("You are missing these numbers: %s\n", red(strings.Join(missingNumbers, " ")))
 						}
-						wrongNumbers := utils.Difference(recallSlice, correctSlice)
+						wrongNumbers := Difference(recallSlice, correctSlice)
 						if len(wrongNumbers) > 0 {
 							yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
 							info += fmt.Sprintf("You add these numbers which should't exist: %s\n", yellow(strings.Join(wrongNumbers, " ")))
@@ -182,9 +184,9 @@ func CompareHint(recallString, correctStr string, showhint int) bool {
 
 					// colorize missing and wrong numbers
 					correctSlice := strings.Split(correctStr, " ")
-					missingNumbers := utils.Difference(correctSlice, recallSlice)
+					missingNumbers := Difference(correctSlice, recallSlice)
 					wrongSlice := strings.Split(recallString, " ")
-					wrongNumbers := utils.Difference(recallSlice, correctSlice)
+					wrongNumbers := Difference(recallSlice, correctSlice)
 
 					red := color.New(color.FgRed, color.Bold).SprintFunc()
 					yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
@@ -209,7 +211,7 @@ func CompareHint(recallString, correctStr string, showhint int) bool {
 						for idx, val := range correctSlice {
 							if slices.Contains(missingNumbers, val) {
 								correctStrColored = append(correctStrColored, red(val))
-								wrongSlice = utils.Insert(wrongSlice, idx, strings.Repeat(" ", len(val)))
+								wrongSlice = Insert(wrongSlice, idx, strings.Repeat(" ", len(val)))
 							} else {
 								correctStrColored = append(correctStrColored, val)
 							}
