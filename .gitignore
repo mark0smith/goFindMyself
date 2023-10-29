@@ -18,6 +18,9 @@
 # vendor/
 
 # Go workspace file
-go.work
+# go.work
 
 .vscode
+*.txt
+hello
+*.db
