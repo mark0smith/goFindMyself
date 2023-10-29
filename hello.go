@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -19,8 +20,9 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 	fmt.Printf("\nYou have entered: %s\n", recallString)
 
 	// toCheck := fmt.Sprintf("[%s]", recallString)
-	correctStr := utils.FindContent(rememberLogfile, recallString)
-	recallResult := utils.CompareHint(dbfile, recallString, correctStr, showhint)
+	// correctStr := utils.FindContentInFile(rememberLogfile, recallString)
+	correctStr := utils.FindContentInDB(dbfile, recallString)
+	recallResult := utils.CompareHint(dbfile, recallString, correctStr, showhint, true)
 
 	datetime := time.Now()
 	datetimeFormatted := datetime.Format("2006-01-02 15:04:05")
@@ -35,6 +37,8 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 }
 
 func main() {
+	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Llongfile)
+
 	num := flag.Int("n", 30, "Number of Random Numbers.")
 	maxium := flag.Int("m", 100, "Generated number wont't be bigger than this number.")
 	unique := flag.Bool("u", true, "If set, all generated numbers will be unique.")

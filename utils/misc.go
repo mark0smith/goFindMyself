@@ -119,13 +119,18 @@ func Insert(a []string, index int, value string) []string {
 	return a
 }
 
-// find content in filename from user input
-func FindContent(rememberLogfile, recallString string) string {
+func FormatUserInput(recallString string) string {
 	reg := regexp.MustCompile(`\s+`)
 	recallString = reg.ReplaceAllString(recallString, " ")
 
 	recallString = strings.TrimSuffix(recallString, "\n")
 	recallString = strings.TrimSpace(recallString)
+	return recallString
+}
+
+// find content in filename from user input
+func FindContentInFile(rememberLogfile, recallString string) string {
+	recallString = FormatUserInput(recallString)
 
 	content, err := os.ReadFile(rememberLogfile)
 	if err != nil {
@@ -135,7 +140,7 @@ func FindContent(rememberLogfile, recallString string) string {
 	recallSlice := strings.Split(recallString, " ")
 	firstNumCount := min(len(recallSlice), 2)
 	correctRegStr := fmt.Sprintf(`\[%s [\w ]+\]`, strings.Join(recallSlice[:firstNumCount], " "))
-	reg = regexp.MustCompile(correctRegStr)
+	reg := regexp.MustCompile(correctRegStr)
 	correctStr := reg.FindString(string(content))
 	correctStr = strings.TrimPrefix(correctStr, "[")
 	correctStr = strings.TrimSuffix(correctStr, "]")
@@ -160,7 +165,7 @@ func ReadAndFormat() string {
 }
 
 // compare string
-func CompareHint(dbFile, recallString, correctStr string, showhint int) bool {
+func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutput bool) bool {
 	recallResult := recallString == correctStr
 
 	recallSlice := strings.Split(recallString, " ")
@@ -175,18 +180,22 @@ func CompareHint(dbFile, recallString, correctStr string, showhint int) bool {
 	correctNumbers := Common(recallSlice, correctSlice)
 	AddCorrectNumbers(dbFile, correctNumbers)
 
+	if !showOutput {
+		return recallResult
+	}
+
 	if recallResult {
 		fmt.Println("You have a correct memory!")
 	} else {
 		fmt.Println("Are you sure you remember it right?")
-		if showhint > 0 {
+		if showHint > 0 {
 			// compare two strings and assume first few numbers (min of 2 and slice lenth) is correct
 
 			info := "\nHint Part:\n"
 			if len(correctStr) < 1 {
 				info += "Totally Wrong! Don't you even remember the first 2 number(s)?\n"
 			} else {
-				if showhint == 1 {
+				if showHint == 1 {
 
 					if len(missingNumbers) > 5 {
 						info += fmt.Sprintf("You are missing %d numbers, which is too many for hinting. You should remember it again!\n", len(missingNumbers))
@@ -206,7 +215,7 @@ func CompareHint(dbFile, recallString, correctStr string, showhint int) bool {
 						}
 					}
 
-				} else if showhint == 2 {
+				} else if showHint == 2 {
 					//info += fmt.Sprintf("The Right: %s\nThe Wrong: %s", correctStr, recallString)
 
 					// colorize missing and wrong numbers
