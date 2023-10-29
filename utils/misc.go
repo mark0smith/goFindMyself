@@ -53,6 +53,21 @@ func Difference(a, b []string) []string {
 	return diff
 }
 
+// common returns the elements in `a` that are in `b`.
+func Common(a, b []string) []string {
+	mb := make(map[string]struct{}, len(b))
+	for _, x := range b {
+		mb[x] = struct{}{}
+	}
+	var diff []string
+	for _, x := range a {
+		if _, found := mb[x]; found {
+			diff = append(diff, x)
+		}
+	}
+	return diff
+}
+
 func WriteInfo(filename, info string) {
 	fil, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0640)
 	if err != nil {
@@ -147,21 +162,32 @@ func ReadAndFormat() string {
 // compare string
 func CompareHint(dbFile, recallString, correctStr string, showhint int) bool {
 	recallResult := recallString == correctStr
+
+	recallSlice := strings.Split(recallString, " ")
+	correctSlice := strings.Split(correctStr, " ")
+
+	missingNumbers := Difference(correctSlice, recallSlice)
+	AddWrongNumbers(dbFile, 2, missingNumbers)
+
+	wrongNumbers := Difference(recallSlice, correctSlice)
+	AddWrongNumbers(dbFile, 1, wrongNumbers)
+
+	correctNumbers := Common(recallSlice, correctSlice)
+	AddCorrectNumbers(dbFile, correctNumbers)
+
 	if recallResult {
 		fmt.Println("You have a correct memory!")
 	} else {
 		fmt.Println("Are you sure you remember it right?")
 		if showhint > 0 {
 			// compare two strings and assume first few numbers (min of 2 and slice lenth) is correct
-			recallSlice := strings.Split(recallString, " ")
+
 			info := "\nHint Part:\n"
 			if len(correctStr) < 1 {
 				info += "Totally Wrong! Don't you even remember the first 2 number(s)?\n"
 			} else {
 				if showhint == 1 {
-					correctSlice := strings.Split(correctStr, " ")
-					missingNumbers := Difference(correctSlice, recallSlice)
-					AddWrongNumbers(dbFile, 2, missingNumbers)
+
 					if len(missingNumbers) > 5 {
 						info += fmt.Sprintf("You are missing %d numbers, which is too many for hinting. You should remember it again!\n", len(missingNumbers))
 					} else {
@@ -185,12 +211,6 @@ func CompareHint(dbFile, recallString, correctStr string, showhint int) bool {
 
 					// colorize missing and wrong numbers
 					correctSlice := strings.Split(correctStr, " ")
-					missingNumbers := Difference(correctSlice, recallSlice)
-					wrongSlice := strings.Split(recallString, " ")
-					wrongNumbers := Difference(recallSlice, correctSlice)
-
-					AddWrongNumbers(dbFile, 2, missingNumbers)
-					AddWrongNumbers(dbFile, 1, wrongNumbers)
 
 					red := color.New(color.FgRed, color.Bold).SprintFunc()
 					yellow := color.New(color.FgYellow, color.Bold).SprintFunc()
@@ -202,7 +222,7 @@ func CompareHint(dbFile, recallString, correctStr string, showhint int) bool {
 					if len(missingNumbers) == 0 && len(wrongNumbers) == 0 {
 						for idx := range correctSlice {
 							rVal := correctSlice[idx]
-							wVal := wrongSlice[idx]
+							wVal := recallSlice[idx]
 							if rVal == wVal {
 								correctStrColored = append(correctStrColored, rVal)
 								wrongStrColored = append(wrongStrColored, wVal)
@@ -215,13 +235,13 @@ func CompareHint(dbFile, recallString, correctStr string, showhint int) bool {
 						for idx, val := range correctSlice {
 							if slices.Contains(missingNumbers, val) {
 								correctStrColored = append(correctStrColored, red(val))
-								wrongSlice = Insert(wrongSlice, idx, strings.Repeat(" ", len(val)))
+								recallSlice = Insert(recallSlice, idx, strings.Repeat(" ", len(val)))
 							} else {
 								correctStrColored = append(correctStrColored, val)
 							}
 						}
 
-						for _, val := range wrongSlice {
+						for _, val := range recallSlice {
 							if slices.Contains(wrongNumbers, val) {
 								wrongStrColored = append(wrongStrColored, yellow(val))
 							} else {

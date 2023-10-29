@@ -34,6 +34,7 @@ func createDB(dbfile string) {
 		"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
 		"number"	INTEGER NOT NULL UNIQUE,
 		"missingCount"	INTEGER NOT NULL,
+		"correctCount"	INTEGER NOT NULL,
 		"wrongCount"	INTEGER NOT NULL
 	);
 	`
@@ -238,6 +239,64 @@ func AddWrongNumbers(dbFile string, wrongType int, numbers []string) {
 				missingCount += 1
 			}
 			_, err = stmt.Exec(missingCount, wrongCount, number)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+// add correct numbers to db
+func AddCorrectNumbers(dbFile string, numbers []string) {
+	db, err := sql.Open("sqlite3", dbFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, number := range numbers {
+		stmt, err := tx.Prepare("select correctCount from Number where number = ?")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer stmt.Close()
+		var correctCount string
+		err = stmt.QueryRow(number).Scan(&correctCount)
+
+		if err != nil {
+			// if not found then insert a new record
+			stmt, err = tx.Prepare("insert into Number(number,correctCount,missingCount,wrongCount) values(?,?,0,0)")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer stmt.Close()
+			correctCount := 1
+
+			_, err = stmt.Exec(number, correctCount)
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			stmt, err = tx.Prepare("update Number set correctCount = ?  where number = ?")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer stmt.Close()
+			correctCount, _ := strconv.Atoi(correctCount)
+			correctCount += 1
+
+			_, err = stmt.Exec(correctCount, number)
 			if err != nil {
 				log.Fatal(err)
 			}
