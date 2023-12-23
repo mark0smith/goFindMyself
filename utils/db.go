@@ -17,7 +17,7 @@ func createDB(dbfile string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-		defer db.Close()
+	defer db.Close()
 
 	sqlStmt := `
 	CREATE TABLE "RandomNumbers" (
@@ -107,13 +107,17 @@ func writeDB(logFile, recallFile, dbFile string) {
 
 }
 
-func InitDB(logFile, recallFile, dbFile string) {
+func InitDB(dbFile string) {
 	if FileExist(dbFile) {
-		// fmt.Printf("Database file already exists and I will not init DB again!\n")
 		return
 	} else {
 		createDB(dbFile)
-		writeDB(logFile, recallFile, dbFile)
+		logFile := "log.txt"
+		recallFile := "recall_log.txt"
+		if FileExist(logFile) && FileExist(recallFile) {
+			writeDB(logFile, recallFile, dbFile)
+		}
+
 	}
 }
 
@@ -122,7 +126,7 @@ func AddNumbers(dbFile string, datetime []string, numbers []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-		defer db.Close()
+	defer db.Close()
 
 	tx, err := db.Begin()
 	if err != nil {
@@ -161,7 +165,7 @@ func AddRecalls(dbFile string, datetime []string, numbers []string, result []str
 	if err != nil {
 		log.Fatal(err)
 	}
-		defer db.Close()
+	defer db.Close()
 
 	tx, err := db.Begin()
 	if err != nil {
@@ -264,7 +268,7 @@ func AddCorrectNumbers(dbFile string, numbers []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-		defer db.Close()
+	defer db.Close()
 
 	tx, err := db.Begin()
 	if err != nil {

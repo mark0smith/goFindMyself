@@ -13,14 +13,12 @@ import (
 )
 
 // recall func
-func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, showhint int, dbfile string) {
+func checkRecall(dbfile string, showhint int) {
 
 	fmt.Println("What do you remember?")
 	recallString := utils.ReadAndFormat()
 	fmt.Printf("\nYou have entered: %s\n", recallString)
 
-	// toCheck := fmt.Sprintf("[%s]", recallString)
-	// correctStr := utils.FindContentInFile(rememberLogfile, recallString)
 	correctStr := utils.FindContentInDB(dbfile, recallString)
 	recallResult := utils.CompareHint(dbfile, recallString, correctStr, showhint, true)
 
@@ -28,12 +26,6 @@ func checkRecall(rememberLogfile string, recallLogfile string, recallLog bool, s
 	datetimeFormatted := datetime.Format("2006-01-02 15:04:05")
 	utils.AddRecalls(dbfile, []string{datetimeFormatted}, []string{recallString}, []string{fmt.Sprintf("%t", recallResult)})
 
-	if recallLog {
-		datetime := time.Now()
-		datetimeFormatted := datetime.Format("2006-01-02 15:04:05")
-		info := fmt.Sprintf("%s Recall: %s, Result: %v\n", datetimeFormatted, recallString, recallResult)
-		utils.WriteInfo(recallLogfile, info)
-	}
 }
 
 func main() {
@@ -43,23 +35,15 @@ func main() {
 	maxium := flag.Int("m", 100, "Generated number wont't be bigger than this number.")
 	unique := flag.Bool("u", true, "If set, all generated numbers will be unique.")
 	remember := flag.Bool("r", false, "If set, generated numbers will be logged into `rememberLogfile`.\nYou should set this if you want to do recall test later!")
-	rememberLogfile := flag.String("r_file", "log.txt", "Filename of remember log")
 	recall := flag.Bool("recall", false, "If set, run a recall test, instead of generating random numbers.")
-	recallLog := flag.Bool("recallLog", true, "If set, recall info will be logged into `recallLogfile`.")
-	recallLogfile := flag.String("recall_file", "recall_log.txt", "Filename of recall log")
 	recallShowHint := flag.Int("hint", 0, "If set, when recall test failes, hint will be given.\n0 for no hint, 1 for diff hint, 2 for full hint")
 	dbFilename := flag.String("db", "data.db", "Filename of database")
-	migratedb := flag.Bool("migratedb", true, "If set, recall info will be logged into `recallLogfile`.")
 
 	flag.Parse()
 
-	if *migratedb {
-		utils.InitDB(*rememberLogfile, *recallLogfile, *dbFilename)
-	}
-
 	if *recall {
 		defer utils.Timer("checkRecall")()
-		checkRecall(*rememberLogfile, *recallLogfile, *recallLog, *recallShowHint, *dbFilename)
+		checkRecall(*dbFilename, *recallShowHint)
 		return
 	}
 
@@ -92,9 +76,6 @@ func main() {
 
 	// type of remember is a pointer, add `*` prefix to get its value
 	if *remember {
-		info := fmt.Sprintf("%s %d\n", datetimeFormatted, uniqueRandomNumbers)
-		filename := *rememberLogfile
-		utils.WriteInfo(filename, info)
 		numbersStr := fmt.Sprintf("%v", uniqueRandomNumbers)
 		numbersStr = strings.TrimPrefix(numbersStr, "[")
 		numbersStr = strings.TrimSuffix(numbersStr, "]")
