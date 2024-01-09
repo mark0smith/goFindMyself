@@ -19,7 +19,12 @@ import (
 func Timer(name string) func() {
 	start := time.Now()
 	return func() {
-		fmt.Printf("%s took %.2fs!\n", name, time.Since(start).Seconds())
+		green := color.New(color.FgHiGreen, color.Bold).PrintFunc()
+		var durations = time.Since(start).Seconds()
+		fmt.Printf("%s took %.2fs!\n", name, durations)
+		if durations < 60 && durations > 20 {
+			green("You have remembered all these numbers and should try some new ones!")
+		}
 	}
 }
 
@@ -227,7 +232,9 @@ func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutp
 
 					var correctStrColored []string
 					var wrongStrColored []string
+					var extraStrColored []string
 
+					// only numbers' orders are wrong
 					if len(missingNumbers) == 0 && len(wrongNumbers) == 0 {
 						for idx := range correctSlice {
 							rVal := correctSlice[idx]
@@ -241,12 +248,21 @@ func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutp
 							}
 						}
 					} else {
+
+						recallSliceFix := make([]string, len(recallSlice))
+						copy(recallSliceFix, recallSlice)
+						fmt.Println(recallSliceFix)
+
 						for idx, val := range correctSlice {
-							if slices.Contains(missingNumbers, val) {
-								correctStrColored = append(correctStrColored, red(val))
-								recallSlice = Insert(recallSlice, idx, strings.Repeat(" ", len(val)))
+							if val != recallSliceFix[idx] {
+								correctStrColored = append(correctStrColored, green(val))
+								recallSlice[idx] = strings.Repeat(" ", len(val))
+								extraStrColored = append(extraStrColored, red(recallSliceFix[idx]))
+
 							} else {
+								extraStrColored = append(extraStrColored, strings.Repeat(" ", len(val)))
 								correctStrColored = append(correctStrColored, val)
+
 							}
 						}
 
@@ -257,10 +273,12 @@ func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutp
 								wrongStrColored = append(wrongStrColored, val)
 							}
 						}
+
 					}
 					correctStr = strings.Join(correctStrColored, " ")
 					wrongStr := strings.Join(wrongStrColored, " ")
-					info += fmt.Sprintf("The Right: %s\nThe Wrong: %s\n", correctStr, wrongStr)
+					extraStr := strings.Join(extraStrColored, " ")
+					info += fmt.Sprintf("The Right: %s\nThe Wrong: %s\nThe Extra: %s\n", correctStr, wrongStr, extraStr)
 				}
 			}
 			fmt.Printf("%s", info)

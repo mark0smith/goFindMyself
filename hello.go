@@ -31,13 +31,13 @@ func checkRecall(dbfile string, showhint int) {
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Llongfile)
 
-	num := flag.Int("n", 30, "Number of Random Numbers.")
-	maxium := flag.Int("m", 100, "Generated number wont't be bigger than this number.")
-	unique := flag.Bool("u", true, "If set, all generated numbers will be unique.")
-	remember := flag.Bool("r", false, "If set, generated numbers will be logged into `rememberLogfile`.\nYou should set this if you want to do recall test later!")
-	recall := flag.Bool("recall", false, "If set, run a recall test, instead of generating random numbers.")
-	recallShowHint := flag.Int("hint", 0, "If set, when recall test failes, hint will be given.\n0 for no hint, 1 for diff hint, 2 for full hint")
-	dbFilename := flag.String("db", "data.db", "Filename of database")
+	num := flag.Int("n", 30, "number of random numbers.")
+	maxium := flag.Int("m", 100, "maxium for random numbers.")
+	unique := flag.Bool("u", true, "all generated numbers will be unique.")
+	remember := flag.Bool("r", false, "store generated numbers for recall tests.")
+	recall := flag.Bool("recall", false, "recall test mode.")
+	recallShowHint := flag.Int("hint", 0, "show hints when recall tests fail: 0 for no hint, 1 for diff hint, 2 for full hint")
+	dbFilename := flag.String("db", "data.db", "database filename")
 
 	flag.Parse()
 
