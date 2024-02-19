@@ -170,20 +170,20 @@ func ReadAndFormat() string {
 }
 
 // compare string
-func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutput bool) bool {
+func CompareHint(Config BaseConfig, recallString, correctStr string, showOutput bool) bool {
 	recallResult := recallString == correctStr
 
 	recallSlice := strings.Split(recallString, " ")
 	correctSlice := strings.Split(correctStr, " ")
 
 	missingNumbers := Difference(correctSlice, recallSlice)
-	AddWrongNumbers(dbFile, 2, missingNumbers)
+	AddWrongNumbers(Config, 2, missingNumbers)
 
 	wrongNumbers := Difference(recallSlice, correctSlice)
-	AddWrongNumbers(dbFile, 1, wrongNumbers)
+	AddWrongNumbers(Config, 1, wrongNumbers)
 
 	correctNumbers := Common(recallSlice, correctSlice)
-	AddCorrectNumbers(dbFile, correctNumbers)
+	AddCorrectNumbers(Config, correctNumbers)
 
 	if !showOutput {
 		return recallResult
@@ -193,14 +193,14 @@ func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutp
 		fmt.Println("You have a correct memory!")
 	} else {
 		fmt.Println("Are you sure you remember it right?")
-		if showHint > 0 {
+		if Config.HintLevel > 0 {
 			// compare two strings and assume first few numbers (min of 2 and slice lenth) is correct
 
 			info := "\nHint Part:\n"
 			if len(correctStr) < 1 {
 				info += "Totally Wrong! Don't you even remember the first 2 number(s)?\n"
 			} else {
-				if showHint == 1 {
+				if Config.HintLevel == 1 {
 
 					if len(missingNumbers) > 5 {
 						info += fmt.Sprintf("You are missing %d numbers, which is too many for hinting. You should remember it again!\n", len(missingNumbers))
@@ -220,7 +220,7 @@ func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutp
 						}
 					}
 
-				} else if showHint == 2 {
+				} else if Config.HintLevel == 2 {
 					//info += fmt.Sprintf("The Right: %s\nThe Wrong: %s", correctStr, recallString)
 
 					// colorize missing and wrong numbers
@@ -251,10 +251,10 @@ func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutp
 
 						recallSliceFix := make([]string, len(recallSlice))
 						copy(recallSliceFix, recallSlice)
-						fmt.Println(recallSliceFix)
+						// fmt.Println(recallSliceFix)
 
 						for idx, val := range correctSlice {
-							if val != recallSliceFix[idx] {
+							if idx < len(recallSliceFix) && val != recallSliceFix[idx] {
 								correctStrColored = append(correctStrColored, green(val))
 								recallSlice[idx] = strings.Repeat(" ", len(val))
 								extraStrColored = append(extraStrColored, red(recallSliceFix[idx]))

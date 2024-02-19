@@ -12,8 +12,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func createDB(dbfile string) {
-	db, err := sql.Open("sqlite3", dbfile)
+func createDB(Config BaseConfig) {
+	db, err := sql.Open("sqlite3", Config.DBFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func createDB(dbfile string) {
 	}
 }
 
-func writeDB(logFile, recallFile, dbFile string) {
+func writeDB(logFile string, recallFile string, Config BaseConfig) {
 
 	content, err := os.ReadFile(logFile)
 	if err != nil {
@@ -76,7 +76,8 @@ func writeDB(logFile, recallFile, dbFile string) {
 			numbersSlice = append(numbersSlice, numbers)
 		}
 	}
-	AddNumbers(dbFile, datatimeSlice, numbersSlice)
+
+	AddNumbers(Config.DBFilename, datatimeSlice, numbersSlice)
 
 	content, err = os.ReadFile(recallFile)
 	if err != nil {
@@ -98,24 +99,24 @@ func writeDB(logFile, recallFile, dbFile string) {
 			resultSlice = append(resultSlice, result)
 		}
 	}
-	AddRecalls(dbFile, datatimeSlice, numbersSlice, resultSlice)
+	AddRecalls(Config.DBFilename, datatimeSlice, numbersSlice, resultSlice)
 
 	for _, recallString := range numbersSlice {
-		correctStr := FindContentInDB(dbFile, recallString)
-		CompareHint(dbFile, recallString, correctStr, 1, false)
+		correctStr := FindContentInDB(Config, recallString)
+		CompareHint(Config, recallString, correctStr, false)
 	}
 
 }
 
-func InitDB(dbFile string) {
-	if FileExist(dbFile) {
+func InitDB(Config BaseConfig) {
+	if FileExist(Config.DBFilename) {
 		return
 	} else {
-		createDB(dbFile)
+		createDB(Config)
 		logFile := "log.txt"
 		recallFile := "recall_log.txt"
 		if FileExist(logFile) && FileExist(recallFile) {
-			writeDB(logFile, recallFile, dbFile)
+			writeDB(logFile, recallFile, Config)
 		}
 
 	}
@@ -197,8 +198,8 @@ func AddRecalls(dbFile string, datetime []string, numbers []string, result []str
 
 // add wrong numbers to db
 // type 1 for wrong numbers, type 2 for missing numbers
-func AddWrongNumbers(dbFile string, wrongType int, numbers []string) {
-	db, err := sql.Open("sqlite3", dbFile)
+func AddWrongNumbers(Config BaseConfig, wrongType int, numbers []string) {
+	db, err := sql.Open("sqlite3", Config.DBFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -210,6 +211,20 @@ func AddWrongNumbers(dbFile string, wrongType int, numbers []string) {
 	}
 
 	for _, number := range numbers {
+		// check if input is number and not bigger than Maxium
+		if len(number) < 1 {
+			continue
+		}
+		numberInt, err := strconv.Atoi(number)
+		if err != nil {
+			// fmt.Printf("%v is not a number. Ignoring ...\n", number)
+			continue
+		}
+		if numberInt > Config.Maxium {
+			// fmt.Printf("Number %v is bigger than maxium `%v`. Don't add it into wrong logs.\n", numberInt, Config.Maxium)
+			continue
+		}
+
 		stmt, err := tx.Prepare("select missingCount,wrongCount from Number where number = ?")
 		if err != nil {
 			log.Fatal(err)
@@ -263,8 +278,8 @@ func AddWrongNumbers(dbFile string, wrongType int, numbers []string) {
 }
 
 // add correct numbers to db
-func AddCorrectNumbers(dbFile string, numbers []string) {
-	db, err := sql.Open("sqlite3", dbFile)
+func AddCorrectNumbers(Config BaseConfig, numbers []string) {
+	db, err := sql.Open("sqlite3", Config.DBFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -321,7 +336,7 @@ func AddCorrectNumbers(dbFile string, numbers []string) {
 }
 
 // find content in filename from user input
-func FindContentInDB(dbFile, recallString string) string {
+func FindContentInDB(Config BaseConfig, recallString string) string {
 	recallString = FormatUserInput(recallString)
 
 	recallSlice := strings.Split(recallString, " ")
@@ -329,7 +344,7 @@ func FindContentInDB(dbFile, recallString string) string {
 	queryContent := strings.Join(recallSlice[:firstNumCount], " ")
 	queryContent += "%"
 
-	db, err := sql.Open("sqlite3", dbFile)
+	db, err := sql.Open("sqlite3", Config.DBFilename)
 	if err != nil {
 		log.Fatal(err)
 	}

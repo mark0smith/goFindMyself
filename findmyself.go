@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"strings"
@@ -12,45 +11,40 @@ import (
 	"github.com/fatih/color"
 )
 
+var Config utils.BaseConfig
+
 // recall func
-func checkRecall(dbfile string, showhint int) {
+func checkRecall() {
 
 	fmt.Println("What do you remember?")
 	recallString := utils.ReadAndFormat()
 	fmt.Printf("\nYou have entered: %s\n", recallString)
 
-	correctStr := utils.FindContentInDB(dbfile, recallString)
-	recallResult := utils.CompareHint(dbfile, recallString, correctStr, showhint, true)
+	correctStr := utils.FindContentInDB(Config, recallString)
+	recallResult := utils.CompareHint(Config, recallString, correctStr, true)
 
 	datetime := time.Now()
 	datetimeFormatted := datetime.Format("2006-01-02 15:04:05")
-	utils.AddRecalls(dbfile, []string{datetimeFormatted}, []string{recallString}, []string{fmt.Sprintf("%t", recallResult)})
+	utils.AddRecalls(Config.DBFilename, []string{datetimeFormatted}, []string{recallString}, []string{fmt.Sprintf("%t", recallResult)})
 
 }
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Llongfile)
 
-	num := flag.Int("n", 30, "number of random numbers.")
-	maxium := flag.Int("m", 100, "maxium for random numbers.")
-	unique := flag.Bool("u", true, "all generated numbers will be unique.")
-	remember := flag.Bool("r", false, "store generated numbers for recall tests.")
-	recall := flag.Bool("recall", false, "recall test mode.")
-	recallShowHint := flag.Int("hint", 0, "show hints when recall tests fail: 0 for no hint, 1 for diff hint, 2 for full hint")
-	dbFilename := flag.String("db", "data.db", "database filename")
+	utils.InitConfig(&Config)
+	utils.InitDB(Config)
 
-	flag.Parse()
-
-	if *recall {
+	if Config.Recall {
 		defer utils.Timer("checkRecall")()
-		checkRecall(*dbFilename, *recallShowHint)
+		checkRecall()
 		return
 	}
 
 	datetime := time.Now()
 	datetimeFormatted := datetime.Format("2006-01-02 15:04:05")
 
-	uniqueRandomNumbers := utils.GenerateRandomNumbers(*num, *maxium, *unique)
+	uniqueRandomNumbers := utils.GenerateRandomNumbers(Config.Count, Config.Maxium, Config.IsUnique)
 
 	// format output string, making it easier to remember
 	var outputStr string
@@ -75,10 +69,11 @@ func main() {
 	fmt.Printf("%s Random Number Generated:\n%s\n", datetimeFormatted, outputStr)
 
 	// type of remember is a pointer, add `*` prefix to get its value
-	if *remember {
+	if Config.IsStored {
 		numbersStr := fmt.Sprintf("%v", uniqueRandomNumbers)
 		numbersStr = strings.TrimPrefix(numbersStr, "[")
 		numbersStr = strings.TrimSuffix(numbersStr, "]")
-		utils.AddNumbers(*dbFilename, []string{datetimeFormatted}, []string{numbersStr})
+
+		utils.AddNumbers(Config.DBFilename, []string{datetimeFormatted}, []string{numbersStr})
 	}
 }
