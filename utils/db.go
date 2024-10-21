@@ -23,7 +23,8 @@ func createDB(Config BaseConfig) {
 	CREATE TABLE "RandomNumbers" (
 		"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 		"datetime"	TEXT NOT NULL,
-		"numbers"	TEXT NOT NULL
+		"numbers"	TEXT NOT NULL,
+		"status"	BLOB NOT NULL DEFAULT 1
 	);
 	CREATE TABLE "Recall" (
 		"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -355,7 +356,7 @@ func FindContentInDB(Config BaseConfig, recallString string) string {
 		log.Fatal(err)
 	}
 
-	stmt, err := tx.Prepare("select numbers from RandomNumbers where numbers like ?")
+	stmt, err := tx.Prepare("select numbers from RandomNumbers where numbers like ? AND status = 1")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -363,6 +364,41 @@ func FindContentInDB(Config BaseConfig, recallString string) string {
 
 	var correctStr string
 	err = stmt.QueryRow(queryContent).Scan(&correctStr)
+
+	result := ""
+	if err != nil {
+
+	} else {
+		result = correctStr
+	}
+	err = tx.Commit()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return result
+}
+
+// disable random numbers' record and no more overfitting!
+func SetRandomNumbersDisabled(Config BaseConfig, randomNumbersString string) string {
+	db, err := sql.Open("sqlite3", Config.DBFilename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	stmt, err := tx.Prepare("update RandomNumbers set status = 0 where numbers = ?")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer stmt.Close()
+
+	var correctStr string
+	err = stmt.QueryRow(randomNumbersString).Scan(&correctStr)
 
 	result := ""
 	if err != nil {

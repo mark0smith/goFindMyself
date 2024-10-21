@@ -17,11 +17,20 @@ var Config utils.BaseConfig
 func checkRecall() {
 
 	fmt.Println("What do you remember?")
+	start := time.Now()
 	recallString := utils.ReadAndFormat()
+	var durations = time.Since(start).Seconds()
 	fmt.Printf("\nYou have entered: %s\n", recallString)
 
 	correctStr := utils.FindContentInDB(Config, recallString)
 	recallResult := utils.CompareHint(Config, recallString, correctStr, true)
+
+	red := color.New(color.FgHiRed, color.Bold).PrintFunc()
+	if durations < 50 && durations > 10 && recallResult {
+		red("You have remembered all these numbers and should try some new ones!\n")
+		// disable random numbers' record and no more overfitting!
+		utils.SetRandomNumbersDisabled(Config, correctStr)
+	}
 
 	datetime := time.Now()
 	datetimeFormatted := datetime.Format("2006-01-02 15:04:05")
@@ -36,7 +45,7 @@ func main() {
 	utils.InitDB(Config)
 
 	if Config.Recall {
-		defer utils.Timer("checkRecall")()
+
 		checkRecall()
 		return
 	}

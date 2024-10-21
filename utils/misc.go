@@ -9,24 +9,10 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/fatih/color"
 	_ "github.com/mattn/go-sqlite3"
 )
-
-// https://stackoverflow.com/a/45766707
-func Timer(name string) func() {
-	start := time.Now()
-	return func() {
-		green := color.New(color.FgHiGreen, color.Bold).PrintFunc()
-		var durations = time.Since(start).Seconds()
-		fmt.Printf("%s took %.2fs!\n", name, durations)
-		if durations < 60 && durations > 20 {
-			green("You have remembered all these numbers and should try some new ones!")
-		}
-	}
-}
 
 func FileExist(filename string) bool {
 	if _, err := os.Stat(filename); err == nil {
