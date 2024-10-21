@@ -12,18 +12,19 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func createDB(dbfile string) {
-	db, err := sql.Open("sqlite3", dbfile)
+func createDB(Config BaseConfig) {
+	db, err := sql.Open("sqlite3", Config.DBFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
-		defer db.Close()
+	defer db.Close()
 
 	sqlStmt := `
 	CREATE TABLE "RandomNumbers" (
 		"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 		"datetime"	TEXT NOT NULL,
-		"numbers"	TEXT NOT NULL
+		"numbers"	TEXT NOT NULL,
+		"status"	BLOB NOT NULL DEFAULT 1
 	);
 	CREATE TABLE "Recall" (
 		"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -56,7 +57,7 @@ func createDB(dbfile string) {
 	}
 }
 
-func writeDB(logFile, recallFile, dbFile string) {
+func writeDB(logFile string, recallFile string, Config BaseConfig) {
 
 	content, err := os.ReadFile(logFile)
 	if err != nil {
@@ -76,7 +77,8 @@ func writeDB(logFile, recallFile, dbFile string) {
 			numbersSlice = append(numbersSlice, numbers)
 		}
 	}
-	AddNumbers(dbFile, datatimeSlice, numbersSlice)
+
+	AddNumbers(Config.DBFilename, datatimeSlice, numbersSlice)
 
 	content, err = os.ReadFile(recallFile)
 	if err != nil {
@@ -98,22 +100,26 @@ func writeDB(logFile, recallFile, dbFile string) {
 			resultSlice = append(resultSlice, result)
 		}
 	}
-	AddRecalls(dbFile, datatimeSlice, numbersSlice, resultSlice)
+	AddRecalls(Config.DBFilename, datatimeSlice, numbersSlice, resultSlice)
 
 	for _, recallString := range numbersSlice {
-		correctStr := FindContentInDB(dbFile, recallString)
-		CompareHint(dbFile, recallString, correctStr, 1, false)
+		correctStr := FindContentInDB(Config, recallString)
+		CompareHint(Config, recallString, correctStr, false)
 	}
 
 }
 
-func InitDB(logFile, recallFile, dbFile string) {
-	if FileExist(dbFile) {
-		// fmt.Printf("Database file already exists and I will not init DB again!\n")
+func InitDB(Config BaseConfig) {
+	if FileExist(Config.DBFilename) {
 		return
 	} else {
-		createDB(dbFile)
-		writeDB(logFile, recallFile, dbFile)
+		createDB(Config)
+		logFile := "log.txt"
+		recallFile := "recall_log.txt"
+		if FileExist(logFile) && FileExist(recallFile) {
+			writeDB(logFile, recallFile, Config)
+		}
+
 	}
 }
 
@@ -122,7 +128,7 @@ func AddNumbers(dbFile string, datetime []string, numbers []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-		defer db.Close()
+	defer db.Close()
 
 	tx, err := db.Begin()
 	if err != nil {
@@ -161,7 +167,7 @@ func AddRecalls(dbFile string, datetime []string, numbers []string, result []str
 	if err != nil {
 		log.Fatal(err)
 	}
-		defer db.Close()
+	defer db.Close()
 
 	tx, err := db.Begin()
 	if err != nil {
@@ -193,8 +199,8 @@ func AddRecalls(dbFile string, datetime []string, numbers []string, result []str
 
 // add wrong numbers to db
 // type 1 for wrong numbers, type 2 for missing numbers
-func AddWrongNumbers(dbFile string, wrongType int, numbers []string) {
-	db, err := sql.Open("sqlite3", dbFile)
+func AddWrongNumbers(Config BaseConfig, wrongType int, numbers []string) {
+	db, err := sql.Open("sqlite3", Config.DBFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -206,6 +212,20 @@ func AddWrongNumbers(dbFile string, wrongType int, numbers []string) {
 	}
 
 	for _, number := range numbers {
+		// check if input is number and not bigger than Maxium
+		if len(number) < 1 {
+			continue
+		}
+		numberInt, err := strconv.Atoi(number)
+		if err != nil {
+			// fmt.Printf("%v is not a number. Ignoring ...\n", number)
+			continue
+		}
+		if numberInt > Config.Maxium {
+			// fmt.Printf("Number %v is bigger than maxium `%v`. Don't add it into wrong logs.\n", numberInt, Config.Maxium)
+			continue
+		}
+
 		stmt, err := tx.Prepare("select missingCount,wrongCount from Number where number = ?")
 		if err != nil {
 			log.Fatal(err)
@@ -259,12 +279,12 @@ func AddWrongNumbers(dbFile string, wrongType int, numbers []string) {
 }
 
 // add correct numbers to db
-func AddCorrectNumbers(dbFile string, numbers []string) {
-	db, err := sql.Open("sqlite3", dbFile)
+func AddCorrectNumbers(Config BaseConfig, numbers []string) {
+	db, err := sql.Open("sqlite3", Config.DBFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
-		defer db.Close()
+	defer db.Close()
 
 	tx, err := db.Begin()
 	if err != nil {
@@ -317,7 +337,7 @@ func AddCorrectNumbers(dbFile string, numbers []string) {
 }
 
 // find content in filename from user input
-func FindContentInDB(dbFile, recallString string) string {
+func FindContentInDB(Config BaseConfig, recallString string) string {
 	recallString = FormatUserInput(recallString)
 
 	recallSlice := strings.Split(recallString, " ")
@@ -325,7 +345,7 @@ func FindContentInDB(dbFile, recallString string) string {
 	queryContent := strings.Join(recallSlice[:firstNumCount], " ")
 	queryContent += "%"
 
-	db, err := sql.Open("sqlite3", dbFile)
+	db, err := sql.Open("sqlite3", Config.DBFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -336,7 +356,7 @@ func FindContentInDB(dbFile, recallString string) string {
 		log.Fatal(err)
 	}
 
-	stmt, err := tx.Prepare("select numbers from RandomNumbers where numbers like ?")
+	stmt, err := tx.Prepare("select numbers from RandomNumbers where numbers like ? AND status = 1")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -344,6 +364,41 @@ func FindContentInDB(dbFile, recallString string) string {
 
 	var correctStr string
 	err = stmt.QueryRow(queryContent).Scan(&correctStr)
+
+	result := ""
+	if err != nil {
+
+	} else {
+		result = correctStr
+	}
+	err = tx.Commit()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return result
+}
+
+// disable random numbers' record and no more overfitting!
+func SetRandomNumbersDisabled(Config BaseConfig, randomNumbersString string) string {
+	db, err := sql.Open("sqlite3", Config.DBFilename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	stmt, err := tx.Prepare("update RandomNumbers set status = 0 where numbers = ?")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer stmt.Close()
+
+	var correctStr string
+	err = stmt.QueryRow(randomNumbersString).Scan(&correctStr)
 
 	result := ""
 	if err != nil {

@@ -9,19 +9,10 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/fatih/color"
 	_ "github.com/mattn/go-sqlite3"
 )
-
-// https://stackoverflow.com/a/45766707
-func Timer(name string) func() {
-	start := time.Now()
-	return func() {
-		fmt.Printf("%s took %.2fs!\n", name, time.Since(start).Seconds())
-	}
-}
 
 func FileExist(filename string) bool {
 	if _, err := os.Stat(filename); err == nil {
@@ -165,20 +156,20 @@ func ReadAndFormat() string {
 }
 
 // compare string
-func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutput bool) bool {
+func CompareHint(Config BaseConfig, recallString, correctStr string, showOutput bool) bool {
 	recallResult := recallString == correctStr
 
 	recallSlice := strings.Split(recallString, " ")
 	correctSlice := strings.Split(correctStr, " ")
 
 	missingNumbers := Difference(correctSlice, recallSlice)
-	AddWrongNumbers(dbFile, 2, missingNumbers)
+	AddWrongNumbers(Config, 2, missingNumbers)
 
 	wrongNumbers := Difference(recallSlice, correctSlice)
-	AddWrongNumbers(dbFile, 1, wrongNumbers)
+	AddWrongNumbers(Config, 1, wrongNumbers)
 
 	correctNumbers := Common(recallSlice, correctSlice)
-	AddCorrectNumbers(dbFile, correctNumbers)
+	AddCorrectNumbers(Config, correctNumbers)
 
 	if !showOutput {
 		return recallResult
@@ -188,14 +179,14 @@ func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutp
 		fmt.Println("You have a correct memory!")
 	} else {
 		fmt.Println("Are you sure you remember it right?")
-		if showHint > 0 {
+		if Config.HintLevel > 0 {
 			// compare two strings and assume first few numbers (min of 2 and slice lenth) is correct
 
 			info := "\nHint Part:\n"
 			if len(correctStr) < 1 {
 				info += "Totally Wrong! Don't you even remember the first 2 number(s)?\n"
 			} else {
-				if showHint == 1 {
+				if Config.HintLevel == 1 {
 
 					if len(missingNumbers) > 5 {
 						info += fmt.Sprintf("You are missing %d numbers, which is too many for hinting. You should remember it again!\n", len(missingNumbers))
@@ -215,7 +206,7 @@ func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutp
 						}
 					}
 
-				} else if showHint == 2 {
+				} else if Config.HintLevel == 2 {
 					//info += fmt.Sprintf("The Right: %s\nThe Wrong: %s", correctStr, recallString)
 
 					// colorize missing and wrong numbers
@@ -227,7 +218,9 @@ func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutp
 
 					var correctStrColored []string
 					var wrongStrColored []string
+					var extraStrColored []string
 
+					// only numbers' orders are wrong
 					if len(missingNumbers) == 0 && len(wrongNumbers) == 0 {
 						for idx := range correctSlice {
 							rVal := correctSlice[idx]
@@ -241,12 +234,21 @@ func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutp
 							}
 						}
 					} else {
+
+						recallSliceFix := make([]string, len(recallSlice))
+						copy(recallSliceFix, recallSlice)
+						// fmt.Println(recallSliceFix)
+
 						for idx, val := range correctSlice {
-							if slices.Contains(missingNumbers, val) {
-								correctStrColored = append(correctStrColored, red(val))
-								recallSlice = Insert(recallSlice, idx, strings.Repeat(" ", len(val)))
+							if idx < len(recallSliceFix) && val != recallSliceFix[idx] {
+								correctStrColored = append(correctStrColored, green(val))
+								recallSlice[idx] = strings.Repeat(" ", len(val))
+								extraStrColored = append(extraStrColored, red(recallSliceFix[idx]))
+
 							} else {
+								extraStrColored = append(extraStrColored, strings.Repeat(" ", len(val)))
 								correctStrColored = append(correctStrColored, val)
+
 							}
 						}
 
@@ -257,10 +259,12 @@ func CompareHint(dbFile, recallString, correctStr string, showHint int, showOutp
 								wrongStrColored = append(wrongStrColored, val)
 							}
 						}
+
 					}
 					correctStr = strings.Join(correctStrColored, " ")
 					wrongStr := strings.Join(wrongStrColored, " ")
-					info += fmt.Sprintf("The Right: %s\nThe Wrong: %s\n", correctStr, wrongStr)
+					extraStr := strings.Join(extraStrColored, " ")
+					info += fmt.Sprintf("The Right: %s\nThe Wrong: %s\nThe Extra: %s\n", correctStr, wrongStr, extraStr)
 				}
 			}
 			fmt.Printf("%s", info)
