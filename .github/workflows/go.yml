@@ -36,5 +36,6 @@ jobs:
         goarch: ${{ matrix.goarch }}
         goversion: "https://dl.google.com/go/go1.21.2.linux-amd64.tar.gz"
         project_path: "."
+        md5sum: false
         binary_name: "goFindMyself"
         extra_files: README.md
