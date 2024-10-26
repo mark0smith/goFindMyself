@@ -2,6 +2,8 @@ package utils
 
 import (
 	"flag"
+	"os"
+	"path/filepath"
 )
 
 type BaseConfig struct {
@@ -25,4 +27,11 @@ func InitConfig(Config *BaseConfig) {
 	flag.StringVar(&Config.DBFilename, "db", "data.db", "database filename")
 
 	flag.Parse()
+
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+	Config.DBFilename = filepath.Join(exPath, Config.DBFilename)
 }
